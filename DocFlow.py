@@ -24,6 +24,7 @@ def main(page: ft.Page):
     
     page.window_maximized = True
     page.theme_mode = ft.ThemeMode.DARK
+   
 
    
     thumbnails = [None] * 40
@@ -155,7 +156,7 @@ def main(page: ft.Page):
                 gradient=ft.LinearGradient(
                     begin=ft.alignment.top_right,
                     end=ft.alignment.bottom_right,
-                    colors=[ft.colors.WHITE, ft.colors.BLUE_900],
+                    colors=[ft.colors.BLUE_GREY, ft.colors.WHITE],
                 ),
             )
         ],
@@ -164,8 +165,12 @@ def main(page: ft.Page):
   
     Barra_nome_arquivo = ft.TextField(
                             hint_text="Nome do arquivo final (sem extensão)",
-                            prefix_icon=ft.icons.INSERT_DRIVE_FILE,     # ícone de salvar/baixar
-                            hint_style=ft.TextStyle(color=ft.colors.GREY_500),                            
+                            prefix_icon=ft.Icon(
+                                name=ft.icons.INSERT_DRIVE_FILE,
+                                color=ft.colors.BLACK,   # cor do ícone
+                                size=30                 # opcional: tamanho do ícone
+                            ),
+                            hint_style=ft.TextStyle(color=ft.colors.GREY_500),
                             bgcolor=ft.colors.WHITE,
                             color=ft.colors.BLACK,
                             border_radius=10,
@@ -175,7 +180,8 @@ def main(page: ft.Page):
                             height=40,
                             text_size=15,
                             text_align=ft.TextAlign.LEFT,
-                            content_padding=10)
+                            content_padding=10
+                        )
 
     def mesclar_view():
         return ft.View(
@@ -196,7 +202,7 @@ def main(page: ft.Page):
                         ),
                         ft.ElevatedButton(
                             "Exportar PDF na ordem",
-                            icon=ft.icons.SAVE_ALT,     # ícone de salvar/baixar
+                            icon=ft.icons.FILE_DOWNLOAD,     # ícone de salvar/baixar
                             bgcolor=ft.colors.GREEN,    # cor verde
                             color=ft.colors.WHITE,
                             on_click=exportar_pdfs
@@ -214,8 +220,6 @@ def main(page: ft.Page):
                 )
             ],
         )
-
-
 
     def voltar_home():
         # limpa ao voltar
@@ -562,6 +566,9 @@ def main(page: ft.Page):
         page.dialog = dialog
         dialog.open = True
         page.update()
+
+
+        
     def separar_view():
         return ft.View(
             "/separar",
@@ -571,6 +578,29 @@ def main(page: ft.Page):
             ],
         )
     # ---------- Funções ----------
+
+
+    def mover_caixa(idx, direcao):
+        novo_idx = idx + direcao
+
+        # Verifica se o novo índice é válido
+        if 0 <= novo_idx < len(thumbnails):
+            # Troca os elementos de posição
+            thumbnails[idx], thumbnails[novo_idx] = thumbnails[novo_idx], thumbnails[idx]
+
+            # Atualiza a interface
+            render_thumbnails()
+
+    # Use Wrap para permitir quebra automática de linha
+    # Use ResponsiveRow para permitir quebra automática
+    thumbnails_row = ft.ResponsiveRow(
+        controls=[],
+        alignment=ft.MainAxisAlignment.START,
+     
+        spacing=5,
+        
+    )
+
     def render_thumbnails():
         thumbnails_row.controls.clear()
         for idx, item in enumerate(thumbnails):
@@ -592,12 +622,12 @@ def main(page: ft.Page):
                                 )
                             ],
                             alignment=ft.MainAxisAlignment.END,
-                            spacing=5
+                            spacing=4
                         ),
                         ft.Text(nome, size=12, weight=ft.FontWeight.BOLD),
                         ft.Image(src_base64=img_b64, width=120, height=160, fit=ft.ImageFit.CONTAIN),
                     ],
-                    spacing=5,
+                    spacing=4,
                     alignment=ft.MainAxisAlignment.CENTER,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER
                 )
@@ -615,23 +645,77 @@ def main(page: ft.Page):
                 "Upload PDF",
                 on_click=lambda _, i=idx: escolher_pdf(i)
             )
+
+            # Caixa acoplada (apenas PDF + botão)
             caixa = ft.Container(
                 content=ft.Column(
                     [conteudo, botao_upload],
                     alignment=ft.MainAxisAlignment.CENTER,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    spacing=10
+                    spacing=4
                 ),
                 width=160,
                 height=240,
                 border=ft.border.all(2, ft.colors.RED),
-                border_radius=10,
-                padding=10,
-                margin=5,
+                border_radius=8,
+                padding=6,
+                margin=6,
                 alignment=ft.alignment.center
             )
-            thumbnails_row.controls.append(caixa)
+
+            # Setas fora da caixa
+            organizacao = ft.Row(
+                [
+                    ft.IconButton(
+                    icon=ft.icons.ARROW_BACK,
+                    icon_color=ft.colors.WHITE,
+                    bgcolor=ft.colors.BLUE_700,
+                    hover_color=ft.colors.BLUE_900,      # cor quando passa o mouse
+                    highlight_color=ft.colors.BLACK,
+                    tooltip="Mover para esquerda",
+                        
+                 
+                        on_click=lambda _, i=idx: mover_caixa(i, -1)
+                    ),
+                    ft.IconButton(
+                    icon=ft.icons.ARROW_FORWARD,
+                    icon_color=ft.colors.WHITE,
+                    bgcolor=ft.colors.BLUE_700,
+                    hover_color=ft.colors.BLUE_900,      # cor quando passa o mouse
+                    highlight_color=ft.colors.BLACK,    # cor quando está "pressionado"
+                    tooltip="Mover para direita",
+                    on_click=lambda _, i=idx: mover_caixa(i, 1)
+                )
+
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=4
+            )
+
+            # Junta caixa + setas em um Row (setas ficam fora da caixa)
+            bloco = ft.Row(
+                [caixa, organizacao],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=8
+            )
+
+            # Responsividade
+            thumbnails_row.controls.append(
+                ft.ResponsiveRow(
+                    controls=[bloco],
+                    col={"xs": 12, "sm": 6, "md": 4, "lg": 3}
+                )
+            )
+
         page.update()
+
+
+
+
+
+
+
+
     def excluir_caixa(index):
         if 0 <= index < len(thumbnails):
             thumbnails[index] = None
@@ -668,7 +752,18 @@ def main(page: ft.Page):
                     page.snack_bar.open = True
                     page.update()
 
+##########################################################################################################################################################
+
+
+    # FilePicker apenas para escolher a pasta destino
+    file_picker_pasta = ft.FilePicker(on_result=lambda e: mover_arquivo(e))
+    page.overlay.append(file_picker_pasta)
+
+    ultimo_arquivo_exportado = None
+
     def exportar_pdfs(e):
+        global ultimo_arquivo_exportado
+
         arquivos = [item[2] for item in thumbnails if item]
         if not arquivos:
             page.snack_bar = ft.SnackBar(ft.Text("Nenhum PDF para exportar"))
@@ -681,33 +776,82 @@ def main(page: ft.Page):
             for caminho in arquivos:
                 doc = fitz.open(caminho)
                 novo_pdf.insert_pdf(doc)
-                doc.close()  # fecha cada documento imediatamente
+                doc.close()
 
             downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
 
-            # Nome único para evitar conflito
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = os.path.join(downloads_dir, f"Arquivo_final_mesclado_{timestamp}.pdf")
+            nome_digitado = Barra_nome_arquivo.value.strip()
+            if nome_digitado:
+                nome_arquivo = f"{nome_digitado}.pdf"
+            else:
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                nome_arquivo = f"Arquivo_final_mesclado_{timestamp}.pdf"
+
+            output_path = os.path.join(downloads_dir, nome_arquivo)
 
             novo_pdf.save(output_path)
-            novo_pdf.close()  # fecha o documento final
+            novo_pdf.close()
 
-            # Exclui a pasta provisória pdfs_temp dentro de Downloads
-            pasta_temp = os.path.join(downloads_dir, "pdfs_temp")
-            if os.path.exists(pasta_temp):
-                shutil.rmtree(pasta_temp)
+            # Guarda o caminho do arquivo exportado
+            ultimo_arquivo_exportado = output_path
 
-            # Limpa a lista e a interface após exportar
+            # Limpa o campo de nome do arquivo
+            Barra_nome_arquivo.value = ""
+            page.update()
+
             thumbnails[:] = [None] * 40
             render_thumbnails()
 
-            page.snack_bar = ft.SnackBar(ft.Text(f"Exportado para {output_path}, pasta provisória excluída"))
+            page.snack_bar = ft.SnackBar(ft.Text(f"Exportado para {output_path}. Agora escolha a pasta destino."))
             page.snack_bar.open = True
             page.update()
+
+            # Abre automaticamente o seletor de pasta
+            file_picker_pasta.get_directory_path()
+
         except Exception as err:
             page.snack_bar = ft.SnackBar(ft.Text(f"Erro ao exportar: {err}"))
             page.snack_bar.open = True
             page.update()
+
+
+    def mover_arquivo(e):
+        global ultimo_arquivo_exportado
+        if ultimo_arquivo_exportado and e.control.result and e.control.result.path:
+            pasta_destino = e.control.result.path
+            destino_final = os.path.join(pasta_destino, os.path.basename(ultimo_arquivo_exportado))
+            shutil.move(ultimo_arquivo_exportado, destino_final)
+
+            page.snack_bar = ft.SnackBar(ft.Text(f"Arquivo movido para {destino_final}"))
+            page.snack_bar.open = True
+            page.update()
+
+
+
+    def mover_arquivo(e):
+        global ultimo_arquivo_exportado
+
+        if not ultimo_arquivo_exportado:
+            page.snack_bar = ft.SnackBar(ft.Text("Nenhum arquivo exportado para mover"))
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        try:
+            pasta_destino = e.control.result.path
+            if pasta_destino:
+                destino_final = os.path.join(pasta_destino, os.path.basename(ultimo_arquivo_exportado))
+                shutil.move(ultimo_arquivo_exportado, destino_final)
+
+                page.snack_bar = ft.SnackBar(ft.Text(f"Arquivo movido para {destino_final}"))
+                page.snack_bar.open = True
+                page.update()
+        except Exception as err:
+            page.snack_bar = ft.SnackBar(ft.Text(f"Erro ao mover: {err}"))
+            page.snack_bar.open = True
+            page.update()
+
+##########################################################################################################################################################
 
     # ---------- FilePicker global ----------
     file_picker = ft.FilePicker(on_result=on_result)
